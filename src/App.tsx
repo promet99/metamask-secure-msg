@@ -9,7 +9,6 @@ import {
 function App() {
   const [memo, setMemo] = useState("");
   const {
-    //
     isLoading: isLoadingUserInfo,
     isSuccessful: suceessfullyloadedUserInfo,
     userWalletAddress,
@@ -37,19 +36,14 @@ function App() {
     if (checkedForSavedMemo === true) {
       return;
     }
-
     setMemo("");
-    if (!isLoadingUserInfo && suceessfullyloadedUserInfo) {
-      // loadMsg();
-    }
-  }, [
-    checkedForSavedMemo,
-    isLoadingUserInfo,
-    loadMsg,
-    suceessfullyloadedUserInfo,
-  ]);
+  }, [checkedForSavedMemo]);
 
-  useAutoSaveMsg({
+  useEffect(() => {
+    setCheckedForSavedMemo(false);
+  }, [userWalletAddress]);
+
+  const { isSaved, manuallySave } = useAutoSaveMsg({
     address: userWalletAddress,
     publicKey: userPublicKey,
     msg: memo,
@@ -58,8 +52,9 @@ function App() {
 
   return (
     <div>
-      <h1>Vite + React</h1>
+      <h1>Secure Memo with Metamask🦊 </h1>
       <div className="card">
+        <div>isSaved:{isSaved ? "O" : "X"}</div>
         <div>
           {suceessfullyloadedUserInfo &&
           checkedForSavedMemo === false &&
@@ -70,22 +65,33 @@ function App() {
                 loadMsg();
               }}
             >
-              Press to Load Saved Memo
+              Press to Load Encrypted Memo
             </button>
           ) : (
-            <textarea
-              value={memo}
-              onChange={(e) => {
-                setMemo(e.target.value);
-              }}
-              style={{ width: "100%", height: "100px" }}
-            />
+            <div>
+              <div>
+                {manuallySave && (
+                  <button
+                    onClick={() => {
+                      manuallySave();
+                    }}
+                  >
+                    Manual Save
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={memo}
+                onChange={(e) => {
+                  setMemo(e.target.value);
+                }}
+                placeholder="Write anything. It will be encrypted and auto-saved locally."
+                style={{ width: "100%", height: "100px" }}
+              />
+            </div>
           )}
         </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
   );
 }

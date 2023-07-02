@@ -70,7 +70,3 @@ export const decryptCompressedMsg = async ({
     return failedResult;
   }
 };
-
-// uncompress and decrypt
-// console.log(`0x${Buffer.from(JSON.stringify(a as EthEncryptedData), "utf8").toString("hex")}`);
-// https://docs.metamask.io/wallet/reference/eth_decrypt

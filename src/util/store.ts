@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { encryptAndCompressMsg, decryptCompressedMsg } from "./msg";
 
 export const storeMsg = ({
@@ -44,19 +44,22 @@ export const useAutoSaveMsg = ({
   publicKey: string | undefined;
   msg: string;
   shouldSave: boolean;
-}) => {
+}): {
+  isSaved: boolean;
+  manuallySave?: () => void;
+} => {
   const SAVE_THROTTLE = 200;
   const [throttleTimestamp, setThrottleTimestamp] = useState(() => Date.now());
-  useEffect(() => {
+
+  const [isSaved, setIsSaved] = useState(false);
+
+  const saveIfValid = useCallback(() => {
+    setIsSaved(false);
     if (
       shouldSave === false ||
       address === undefined ||
       publicKey === undefined
     ) {
-      return;
-    }
-    const now = Date.now();
-    if (now - throttleTimestamp < SAVE_THROTTLE) {
       return;
     }
     if (msg.length === 0) {
@@ -68,8 +71,22 @@ export const useAutoSaveMsg = ({
         msg,
       });
     }
+    setIsSaved(() => true);
+  }, [address, msg, publicKey, shouldSave]);
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now - throttleTimestamp < SAVE_THROTTLE) {
+      return;
+    }
+    saveIfValid();
     setThrottleTimestamp(now);
-  }, [address, publicKey, msg, throttleTimestamp, shouldSave]);
+  }, [saveIfValid, throttleTimestamp]);
+
+  return {
+    isSaved,
+    manuallySave: saveIfValid,
+  };
 };
 
 export const doesAddressHasStoredMsg = ({
