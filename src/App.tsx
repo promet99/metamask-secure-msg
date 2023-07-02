@@ -1,46 +1,92 @@
-import { useState } from "react";
-import { Buffer } from "buffer";
-
-import { encryptSafely } from "@metamask/eth-sig-util";
+import { useCallback, useEffect, useState } from "react";
+import { useGetWalletAndPKey } from "./util/wallet";
+import {
+  useAutoSaveMsg,
+  loadStoredMsg,
+  useDoesAddressHasStoredMsg,
+} from "./util/store";
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  // address => public key
-  // https://docs.metamask.io/wallet/reference/eth_getencryptionpublickey
-
-  const a = encryptSafely({
-    publicKey: "T2S8gJeiCgc5N6z5ScluiyKQEtBT0XtclstFqufgSRQ=",
-    data: "test",
-    version: "x25519-xsalsa20-poly1305",
+  const [memo, setMemo] = useState("");
+  const {
+    //
+    isLoading: isLoadingUserInfo,
+    isSuccessful: suceessfullyloadedUserInfo,
+    userWalletAddress,
+    userPublicKey,
+  } = useGetWalletAndPKey();
+  const { hasStoredMsg } = useDoesAddressHasStoredMsg({
+    address: userWalletAddress,
   });
-  console.log(JSON.stringify(a), "utf8");
-  console.log(`0x${Buffer.from(JSON.stringify(a), "utf8").toString("hex")}`);
-  // https://docs.metamask.io/wallet/reference/eth_decrypt
+
+  const loadMsg = useCallback(() => {
+    const asyncFunction = async () => {
+      if (userWalletAddress !== undefined) {
+        const msg = await loadStoredMsg({ address: userWalletAddress });
+        if (msg !== undefined) {
+          setMemo(msg);
+        }
+      }
+    };
+    asyncFunction();
+  }, [userWalletAddress]);
+
+  const [checkedForSavedMemo, setCheckedForSavedMemo] = useState(false);
+
+  useEffect(() => {
+    if (checkedForSavedMemo === true) {
+      return;
+    }
+
+    setMemo("");
+    if (!isLoadingUserInfo && suceessfullyloadedUserInfo) {
+      // loadMsg();
+    }
+  }, [
+    checkedForSavedMemo,
+    isLoadingUserInfo,
+    loadMsg,
+    suceessfullyloadedUserInfo,
+  ]);
+
+  useAutoSaveMsg({
+    address: userWalletAddress,
+    publicKey: userPublicKey,
+    msg: memo,
+    shouldSave: true,
+  });
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
+    <div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+        <div>
+          {suceessfullyloadedUserInfo &&
+          checkedForSavedMemo === false &&
+          hasStoredMsg ? (
+            <button
+              onClick={() => {
+                setCheckedForSavedMemo(true);
+                loadMsg();
+              }}
+            >
+              Press to Load Saved Memo
+            </button>
+          ) : (
+            <textarea
+              value={memo}
+              onChange={(e) => {
+                setMemo(e.target.value);
+              }}
+              style={{ width: "100%", height: "100px" }}
+            />
+          )}
+        </div>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
-    </>
+    </div>
   );
 }
 
